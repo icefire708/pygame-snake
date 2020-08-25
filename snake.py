@@ -12,7 +12,9 @@ pygame.init()
 width = 600
 height = 600
 
-window = pygame.display.set_mode((width, height))
+height_of_info_panel = 50
+
+window = pygame.display.set_mode((width, height + height_of_info_panel))
 SIDE = 30
 
 col_fruit = random.randint(0, width // SIDE - 1)
@@ -30,21 +32,30 @@ delta_col = 1
 last_direction = (delta_row, delta_col)
 
 count_of_skipped_frames = 0
-cur_lvl = 0 # от 0 до 4
-lvl_count_of_skipped_frames = [20, 15, 10, 5, 3]
-max_count_of_skipped_frames = lvl_count_of_skipped_frames[cur_lvl]
+
+cur_lvl = 1 # от 1 до количества элементов в dict_len_to_frames
+
+# в словаре ключ текущая длинна змеи, а значение количество фремов, которые будем пропускать
+dict_len_to_frames = {
+    0: 15, # начальное количество пропускаемых фреймов
+    5: 12, 
+    10: 10, 
+    15: 5, 
+    20: 3, 
+}
+max_count_of_skipped_frames = dict_len_to_frames[0]
 
 clock = pygame.time.Clock()
 FPS = 60
 
 my_font = pygame.font.Font(None, 36)
+info_panel_font = pygame.font.Font(None, 24)
 restart_button_x = 50
 restart_button_y = 250
 restart_button_width = 200
 restart_button_hight = 50
 
 while True:
-    
     pygame.draw.rect(window, background_color, (0, 0, width, height))
     events = pygame.event.get()
     for event in events:
@@ -79,7 +90,11 @@ while True:
             snake.insert(0, (snake[0][0] + delta_row, snake[0][1] + delta_col))
             last_direction = (delta_row, delta_col)
             if snake[0] == (row_fruit, col_fruit):
-                while (row_fruit, col_fruit) in snake:
+                if len(snake) in dict_len_to_frames.keys():
+                    max_count_of_skipped_frames = dict_len_to_frames[len(snake)]
+                    cur_lvl += 1
+                # возможно стоит переписать генерацию фрукта вне змеи
+                while (row_fruit, col_fruit) in snake: 
                     col_fruit = random.randint(0, width // SIDE - 1)
                     row_fruit = random.randint(0, height // SIDE - 1)
             else:
@@ -91,12 +106,14 @@ while True:
         elif snake[0] in snake[1:]:
             game_state = 'death_now'
             text_death_1 = my_font.render('Ты впечатался в себя', 1, text_color)
-             
-        for row, col in snake:
-            pygame.draw.rect(window, snake_color, (col * SIDE, row * SIDE, SIDE, SIDE))
-        pygame.draw.rect(window, head_color, (snake[0][1] * SIDE, snake[0][0] * SIDE, SIDE, SIDE))
-        pygame.draw.rect(window, fruit_color, (col_fruit * SIDE, row_fruit * SIDE, SIDE, SIDE))
+        else:     
+            for row, col in snake:
+                pygame.draw.rect(window, snake_color, (col * SIDE, row * SIDE, SIDE, SIDE))
+            pygame.draw.rect(window, head_color, (snake[0][1] * SIDE, snake[0][0] * SIDE, SIDE, SIDE))
+            pygame.draw.rect(window, fruit_color, (col_fruit * SIDE, row_fruit * SIDE, SIDE, SIDE))
     if game_state == 'death_now':
+        max_count_of_skipped_frames = dict_len_to_frames[0]
+        cur_lvl = 1
         text_death_2 = my_font.render(f'Текущая длинна змеи: {len(snake)}', 1, text_color)
         if len(snake) >= best_result:
             best_result = len(snake)
@@ -119,13 +136,15 @@ while True:
     elif game_state == 'pause':
         pass
 
-
-
+    # исправить цвет
+    pygame.draw.rect(window, (255, 0, 0), (0, height, width, height_of_info_panel))
+    # сделать чтобы текст не убегал при переходе от длины 9 к 10
+    info_str = f'Длина змея: {len(snake)}    Лучший результат: {best_result}    Текущий уровень: {cur_lvl}'
+    info_panel_text = info_panel_font.render(info_str, 1, text_color)
+    window.blit(info_panel_text, (50, height + height_of_info_panel // 3))
     pygame.display.update()
     clock.tick(FPS)
 
-
-# нужно добавить уровни, типо сожрал 30, змея гоняет быстрее
 
 # нужно добавить постоянное отображение:
     # текущая длина змея
